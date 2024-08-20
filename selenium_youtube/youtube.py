@@ -1,5 +1,5 @@
 # ------------------------------------------------------------ Imports ----------------------------------------------------------- #
-
+import datetime
 # System
 from pickle import NONE
 from typing import List, Optional, Tuple, Callable, Union
@@ -32,29 +32,28 @@ from .enums.analytics_tab import AnalyticsTab
 # -------------------------------------------------------------------------------------------------------------------------------- #
 
 
-
 # ------------------------------------------------------------ Defines ----------------------------------------------------------- #
 
-YT_URL                  = 'https://www.youtube.com'
-YT_STUDIO_URL           = 'https://studio.youtube.com'
-YT_UPLOAD_URL           = 'https://www.youtube.com/upload'
-YT_LOGIN_URL            = 'https://accounts.google.com/signin/v2/identifier?service=youtube'
-YT_STUDIO_VIDEO_URL     = 'https://studio.youtube.com/video/{}/edit/basic'
-YT_WATCH_VIDEO_URL      = 'https://www.youtube.com/watch?v={}'
-YT_PROFILE_URL          = 'https://www.youtube.com/channel/{}'
-YT_PROFILE_CONTENT_URL  = 'https://studio.youtube.com/channel/{}/videos'
-YT_SEARCH_URL           = 'https://www.youtube.com/results?search_query={}'
+YT_URL = 'https://www.youtube.com'
+YT_STUDIO_URL = 'https://studio.youtube.com'
+YT_UPLOAD_URL = 'https://www.youtube.com/upload'
+YT_LOGIN_URL = 'https://accounts.google.com/signin/v2/identifier?service=youtube'
+YT_STUDIO_VIDEO_URL = 'https://studio.youtube.com/video/{}/edit/basic'
+YT_WATCH_VIDEO_URL = 'https://www.youtube.com/watch?v={}'
+YT_PROFILE_URL = 'https://www.youtube.com/channel/{}'
+YT_PROFILE_CONTENT_URL = 'https://studio.youtube.com/channel/{}/videos'
+YT_SEARCH_URL = 'https://www.youtube.com/results?search_query={}'
 
-MAX_TITLE_CHAR_LEN          = 100
-MAX_DESCRIPTION_CHAR_LEN    = 5000
-MAX_TAGS_CHAR_LEN           = 400
-MAX_TAG_CHAR_LEN            = 30
+MAX_TITLE_CHAR_LEN = 100
+MAX_DESCRIPTION_CHAR_LEN = 5000
+MAX_TAGS_CHAR_LEN = 400
+MAX_TAG_CHAR_LEN = 30
 
 LOGIN_INFO_COOKIE_NAME = 'LOGIN_INFO'
 ERROR_MAX_UPLOAD_LIMIT_REACHED = 'MAX_UPLOAD_LIMIT_REACHED'
 
-# -------------------------------------------------------------------------------------------------------------------------------- #
 
+# -------------------------------------------------------------------------------------------------------------------------------- #
 
 
 # -------------------------------------------------------- class: Youtube -------------------------------------------------------- #
@@ -64,15 +63,15 @@ class Youtube(SeleniumUploaderAccount):
     # --------------------------------------------------------- Init --------------------------------------------------------- #
 
     def __init__(
-        self,
+            self,
 
-        # browser
-        browser: Browser,
+            # browser
+            browser: Browser,
 
-        # login
-        prompt_user_input_login: bool = True,
-        login_prompt_callback: Optional[Callable[[str], None]] = None,
-        login_prompt_timeout_seconds: int = 60*5
+            # login
+            prompt_user_input_login: bool = True,
+            login_prompt_callback: Optional[Callable[[str], None]] = None,
+            login_prompt_timeout_seconds: int = 60 * 5
     ):
         super().__init__(
             # browser
@@ -86,7 +85,6 @@ class Youtube(SeleniumUploaderAccount):
 
         if not self.did_log_in_at_init:
             self.__dismiss_alerts()
-
 
     # ------------------------------------------------------- Overrides ------------------------------------------------------ #
 
@@ -105,17 +103,17 @@ class Youtube(SeleniumUploaderAccount):
     def _login_via_cookies_needed_cookie_names(self) -> Union[str, List[str]]:
         return LOGIN_INFO_COOKIE_NAME
 
-
     # ---------------------------------------------------- Public methods ---------------------------------------------------- #
 
     def get_sub_and_video_count(self, channel_id: str) -> Optional[Tuple[int, int]]:
-        return YoutubeScraper(user_agent=self.user_agent, proxy=self.proxy.string).get_sub_and_video_count(channel_id=channel_id)
+        return YoutubeScraper(user_agent=self.user_agent, proxy=self.proxy.string).get_sub_and_video_count(
+            channel_id=channel_id)
 
     def get_channel_about_data(
-        self,
-        user_name: Optional[str] = None,
-        channel_id: Optional[str] = None,
-        channel_url_name: Optional[str] = None
+            self,
+            user_name: Optional[str] = None,
+            channel_id: Optional[str] = None,
+            channel_url_name: Optional[str] = None
     ) -> Optional[ChannelAboutData]:
         return YoutubeScraper(user_agent=self.user_agent, proxy=self.proxy.string).get_channel_about_data(
             user_name=user_name,
@@ -124,11 +122,11 @@ class Youtube(SeleniumUploaderAccount):
         )
 
     def watch_video(
-        self,
-        video_id: str,
-        percent_to_watch: float = -1, # 0-100 # -1 means all
-        like: bool = False
-    ) -> Tuple[bool, bool]: # watched, liked
+            self,
+            video_id: str,
+            percent_to_watch: float = -1,  # 0-100 # -1 means all
+            like: bool = False
+    ) -> Tuple[bool, bool]:  # watched, liked
         watched = False
         liked = False
 
@@ -171,10 +169,13 @@ class Youtube(SeleniumUploaderAccount):
         self.get(YT_WATCH_VIDEO_URL.format(video_id))
 
         try:
-            buttons_container = self.browser.find_by('div', id_='top-level-buttons', class_='style-scope ytd-menu-renderer', timeout=1.5)
+            buttons_container = self.browser.find_by('div', id_='top-level-buttons',
+                                                     class_='style-scope ytd-menu-renderer', timeout=1.5)
 
             if buttons_container:
-                button_container = self.browser.find_by('ytd-toggle-button-renderer', class_='style-scope ytd-menu-renderer force-icon-button style-text', timeout=0.5, in_element=buttons_container)
+                button_container = self.browser.find_by('ytd-toggle-button-renderer',
+                                                        class_='style-scope ytd-menu-renderer force-icon-button style-text',
+                                                        timeout=0.5, in_element=buttons_container)
 
                 if button_container:
                     button = self.browser.find_by('button', id_='button', timeout=0.5, in_element=button_container)
@@ -194,17 +195,17 @@ class Youtube(SeleniumUploaderAccount):
             return False
 
     def upload(
-        self,
-        video_path: str,
-        title: str,
-        description: str,
-        tags: Optional[List[str]] = None,
-        made_for_kids: bool = False,
-        visibility: Visibility = Visibility.PUBLIC,
-        thumbnail_image_path: Optional[str] = None,
-        timeout: Optional[int] = 60*3, # 3 min
-        extra_sleep_after_upload: Optional[int] = None,
-        extra_sleep_before_publish: Optional[int] = None
+            self,
+            video_path: str,
+            title: str,
+            description: str,
+            tags: Optional[List[str]] = None,
+            made_for_kids: bool = False,
+            visibility: Visibility = Visibility.PUBLIC,
+            thumbnail_image_path: Optional[str] = None,
+            timeout: Optional[int] = 60 * 3,  # 3 min
+            extra_sleep_after_upload: Optional[int] = None,
+            extra_sleep_before_publish: Optional[int] = None
     ) -> (bool, Optional[str]):
         if not self.is_logged_in:
             print('Error - \'upload\': Isn\'t logged in')
@@ -247,7 +248,9 @@ class Youtube(SeleniumUploaderAccount):
                 if avatar_button:
                     avatar_button.click()
 
-            href_containers = self.browser.find_all_by('a', class_='yt-simple-endpoint style-scope ytd-compact-link-renderer', timeout=0.5)
+            href_containers = self.browser.find_all_by('a',
+                                                       class_='yt-simple-endpoint style-scope ytd-compact-link-renderer',
+                                                       timeout=0.5)
 
             if href_containers:
                 for href_container in href_containers:
@@ -269,11 +272,11 @@ class Youtube(SeleniumUploaderAccount):
         self.get(self.__video_url(video_id))
 
     def comment_on_video(
-        self,
-        video_id: str,
-        comment: str,
-        pinned: bool = False,
-        timeout: Optional[int] = 15
+            self,
+            video_id: str,
+            comment: str,
+            pinned: bool = False,
+            timeout: Optional[int] = 15
     ) -> (bool, bool):
         if not self.is_logged_in:
             print('Error - \'upload\': Isn\'t logged in')
@@ -295,9 +298,9 @@ class Youtube(SeleniumUploaderAccount):
         return res
 
     def get_channel_video_ids(
-        self,
-        channel_id: Optional[str] = None,
-        ignored_titles: Optional[List[str]] = None
+            self,
+            channel_id: Optional[str] = None,
+            ignored_titles: Optional[List[str]] = None
     ) -> List[str]:
         video_ids = []
         ignored_titles = ignored_titles or []
@@ -310,7 +313,7 @@ class Youtube(SeleniumUploaderAccount):
             while True:
                 self.browser.scroll(1500)
 
-                i=0
+                i = 0
                 max_i = 100
                 sleep_time = 0.1
                 should_break = True
@@ -329,7 +332,8 @@ class Youtube(SeleniumUploaderAccount):
                     break
 
             soup = bs(self.browser.driver.page_source, 'lxml')
-            elems = soup.find_all('a', {'id':'video-title', 'class':'yt-simple-endpoint style-scope ytd-grid-video-renderer'})
+            elems = soup.find_all('a', {'id': 'video-title',
+                                        'class': 'yt-simple-endpoint style-scope ytd-grid-video-renderer'})
 
             for elem in elems:
                 if 'title' in elem.attrs:
@@ -356,9 +360,9 @@ class Youtube(SeleniumUploaderAccount):
         return video_ids
 
     def check_analytics(
-        self,
-        tab: AnalyticsTab = AnalyticsTab.OVERVIEW,
-        period: AnalyticsPeriod = AnalyticsPeriod.LAST_28_DAYS
+            self,
+            tab: AnalyticsTab = AnalyticsTab.OVERVIEW,
+            period: AnalyticsPeriod = AnalyticsPeriod.LAST_28_DAYS
     ) -> bool:
         return self.__open_yt_studio(f'analytics/tab-{tab.value}/period-{period.value}')
 
@@ -369,14 +373,15 @@ class Youtube(SeleniumUploaderAccount):
         return self.__open_yt_studio('editing/details')
 
     @noraise(default_return_value=(False, 0))
-    def get_violations(self) -> Tuple[bool, int]: # has_warning, strikes
+    def get_violations(self) -> Tuple[bool, int]:  # has_warning, strikes
         self.get(YT_STUDIO_URL)
         violations_container = self.browser.find_by('div', class_='style-scope ytcd-strikes-item')
 
         if not violations_container:
             return False, 0
 
-        violations_label = self.browser.find_by('div', class_='label style-scope ytcp-badge', in_element=violations_container)
+        violations_label = self.browser.find_by('div', class_='label style-scope ytcp-badge',
+                                                in_element=violations_container)
 
         if not violations_label:
             return False, 0
@@ -397,7 +402,8 @@ class Youtube(SeleniumUploaderAccount):
         start_time = time.time()
 
         while True:
-            attrs = self.browser.get_attributes(self.browser.find_by('ytcp-text-dropdown-trigger', id_='endscreen-editor-link'))
+            attrs = self.browser.get_attributes(
+                self.browser.find_by('ytcp-text-dropdown-trigger', id_='endscreen-editor-link'))
 
             if not attrs or 'disabled' in attrs:
                 if time.time() - start_time < max_wait_seconds_for_processing:
@@ -417,12 +423,13 @@ class Youtube(SeleniumUploaderAccount):
 
         time.sleep(2)
 
-        return self.browser.find_by('ytve-endscreen-editor-options-panel', class_='style-scope ytve-editor', timeout=0.5) is None
+        return self.browser.find_by('ytve-endscreen-editor-options-panel', class_='style-scope ytve-editor',
+                                    timeout=0.5) is None
 
     @noraise(default_return_value=False)
     def remove_welcome_popup(
-        self,
-        offset: Tuple[int, int] = (20, 20)
+            self,
+            offset: Tuple[int, int] = (20, 20)
     ) -> bool:
         timeout = 5
 
@@ -435,44 +442,54 @@ class Youtube(SeleniumUploaderAccount):
 
     @noraise(default_return_value=None)
     def setup_account_branding(
-        self,
-        profile_pic: Optional[str] = None,
-        banner_image: Optional[str] = None,
-        watermark: Optional[str] = None,
+            self,
+            profile_pic: Optional[str] = None,
+            banner_image: Optional[str] = None,
+            watermark: Optional[str] = None,
     ) -> None:
         self.check_channel_branding()
         time.sleep(5)
 
         if profile_pic:
             print('profile_pic', profile_pic)
-            self.browser.find_by('input', class_='style-scope ytcp-profile-image-upload', type='file', timeout=10).send_keys(profile_pic)
+            self.browser.find_by('input', class_='style-scope ytcp-profile-image-upload', type='file',
+                                 timeout=10).send_keys(profile_pic)
             print('sleeping')
             time.sleep(1)
-            self.browser.move_to_element(element=self.browser.find_by('ytcp-button', id_='done-button', class_='done-btn style-scope ytcp-profile-image-editor', timeout=10), click=True)
+            self.browser.move_to_element(element=self.browser.find_by('ytcp-button', id_='done-button',
+                                                                      class_='done-btn style-scope ytcp-profile-image-editor',
+                                                                      timeout=10), click=True)
 
         if banner_image:
-            self.browser.find_by('input', class_='style-scope ytcp-banner-upload', type='file', timeout=10).send_keys(banner_image)
+            self.browser.find_by('input', class_='style-scope ytcp-banner-upload', type='file', timeout=10).send_keys(
+                banner_image)
             time.sleep(1)
-            self.browser.move_to_element(element=self.browser.find_by('ytcp-button', id_='done-button', class_='done-btn style-scope ytcp-banner-editor', timeout=10), click=True)
+            self.browser.move_to_element(element=self.browser.find_by('ytcp-button', id_='done-button',
+                                                                      class_='done-btn style-scope ytcp-banner-editor',
+                                                                      timeout=10), click=True)
 
         if watermark:
-            self.browser.find_by('input', class_='style-scope ytcp-video-watermark-upload', type='file', timeout=10).send_keys(watermark)
+            self.browser.find_by('input', class_='style-scope ytcp-video-watermark-upload', type='file',
+                                 timeout=10).send_keys(watermark)
             time.sleep(1)
-            self.browser.move_to_element(element=self.browser.find_by('ytcp-button', id_='done-button', class_='done-btn style-scope ytcp-video-watermark-image-editor', timeout=10), click=True)
+            self.browser.move_to_element(element=self.browser.find_by('ytcp-button', id_='done-button',
+                                                                      class_='done-btn style-scope ytcp-video-watermark-image-editor',
+                                                                      timeout=10), click=True)
 
         self.browser.move_to_element(element=self.browser.find_by('ytcp-button', id_='publish-button'), click=True)
 
     @noraise(default_return_value=None)
     def setup_account_details(
-        self,
-        name: Optional[str] = None,
-        description: Optional[str] = None
+            self,
+            name: Optional[str] = None,
+            description: Optional[str] = None
     ) -> None:
         self.check_channel_basic_info()
         time.sleep(5)
 
         if name:
-            self.browser.find_by('ytcp-icon-button', id_='edit-button', class_='style-scope ytcp-channel-editing-channel-name', timeout=10).click()
+            self.browser.find_by('ytcp-icon-button', id_='edit-button',
+                                 class_='style-scope ytcp-channel-editing-channel-name', timeout=10).click()
             self.browser.set_textfield_text_remove_old(
                 element=self.browser.find_by('input', id_='brand-name-input', timeout=5),
                 text=name
@@ -480,19 +497,19 @@ class Youtube(SeleniumUploaderAccount):
 
         if description:
             self.browser.set_textfield_text_remove_old(
-                element=self.browser.find_by('div', id_='textbox', timeout=5) or self.browser.find_by(id_='textbox', timeout=10),
+                element=self.browser.find_by('div', id_='textbox', timeout=5) or self.browser.find_by(id_='textbox',
+                                                                                                      timeout=10),
                 text=description
             )
 
         self.browser.move_to_element(element=self.browser.find_by('ytcp-button', id_='publish-button'), click=True)
 
-
     # ---------------------------------------------------- Private methods --------------------------------------------------- #
 
     @noraise(default_return_value=False)
     def __open_yt_studio(
-        self,
-        sub_url: str
+            self,
+            sub_url: str
     ) -> bool:
         if not self.current_user_id:
             self.print('No channel ID found')
@@ -507,8 +524,8 @@ class Youtube(SeleniumUploaderAccount):
         return True
 
     def _input_file(
-        self,
-        file_path: str,
+            self,
+            file_path: str,
     ) -> None:
         # can throw
         self.browser.find_by('input', type='file').send_keys(file_path)
@@ -520,18 +537,19 @@ class Youtube(SeleniumUploaderAccount):
 
     @timeoutable(timeout_type=TimeoutType.Threading if os.name == 'nt' else TimeoutType.Signal, name='Upload')
     def __upload(
-        self,
-        video_path: str,
-        title: str,
-        description: str,
-        tags: Optional[List[str]] = None,
-        made_for_kids: bool = False,
-        visibility: Visibility = Visibility.PUBLIC,
-        thumbnail_image_path: Optional[str] = None,
-        extra_sleep_after_upload: Optional[int] = None,
-        extra_sleep_before_publish: Optional[int] = None,
-        extra_sleep_after_publish: Optional[float] = 15,
-        timeout: Optional[int] = None
+            self,
+            video_path: str,
+            title: str,
+            description: str,
+            tags: Optional[List[str]] = None,
+            made_for_kids: bool = False,
+            visibility: Visibility = Visibility.PUBLIC,
+            public_datetime: datetime.datetime = None,
+            thumbnail_image_path: Optional[str] = None,
+            extra_sleep_after_upload: Optional[int] = None,
+            extra_sleep_before_publish: Optional[int] = None,
+            extra_sleep_after_publish: Optional[float] = 15,
+            timeout: Optional[int] = None
     ) -> (bool, Optional[str]):
         self.get(YT_URL)
         time.sleep(1.5)
@@ -571,12 +589,15 @@ class Youtube(SeleniumUploaderAccount):
             self.__dismiss_callouts(timeout=1)
 
             self.browser.set_textfield_text_remove_old(
-                element=self.browser.find_by('div', id_='textbox', timeout=5) or self.browser.find_by(id_='textbox', timeout=5),
+                element=self.browser.find_by('div', id_='textbox', timeout=5) or self.browser.find_by(id_='textbox',
+                                                                                                      timeout=5),
                 text=title[:MAX_TITLE_CHAR_LEN]
             )
             self.print('Upload: added title')
 
-            description_container = self.browser.find_by('ytcp-mention-textbox', class_='description-textarea style-scope ytcp-uploads-basics') or self.browser.find_by('div', id='description-container')
+            description_container = self.browser.find_by('ytcp-mention-textbox',
+                                                         class_='description-textarea style-scope ytcp-uploads-basics') or self.browser.find_by(
+                'div', id='description-container')
             self.browser.set_textfield_text_remove_old(
                 element=self.browser.find_by(id='textbox', in_element=description_container),
                 text=description[:MAX_DESCRIPTION_CHAR_LEN]
@@ -591,7 +612,10 @@ class Youtube(SeleniumUploaderAccount):
                 except Exception as e:
                     self.print('Upload: Thumbnail error: ', e)
 
-            (self.browser.find_by('ytcp-button', class_='advanced-button style-scope ytcp-uploads-details') or self.browser.find_by('ytcp-button', {"id":"toggle-button", "class":"style-scope ytcp-video-metadata-editor", "role":"button"})).click()
+            (self.browser.find_by('ytcp-button',
+                                  class_='advanced-button style-scope ytcp-uploads-details') or self.browser.find_by(
+                'ytcp-button',
+                {"id": "toggle-button", "class": "style-scope ytcp-video-metadata-editor", "role": "button"})).click()
 
             self.print("Upload: clicked more options")
             self.__dismiss_welcome_popups(timeout=2)
@@ -599,9 +623,12 @@ class Youtube(SeleniumUploaderAccount):
             self.__dismiss_callouts(timeout=1)
 
             if tags:
-                tags_container = self.browser.find_by('ytcp-form-input-container', id='tags-container') or self.browser.find(By.XPATH, "/html/body/ytcp-uploads-dialog/paper-dialog/div/ytcp-animatable[1]/ytcp-uploads-details/div/ytcp-uploads-advanced/ytcp-form-input-container/div[1]/div[2]/ytcp-free-text-chip-bar/ytcp-chip-bar/div")
+                tags_container = self.browser.find_by('ytcp-form-input-container',
+                                                      id='tags-container') or self.browser.find(By.XPATH,
+                                                                                                "/html/body/ytcp-uploads-dialog/paper-dialog/div/ytcp-animatable[1]/ytcp-uploads-details/div/ytcp-uploads-advanced/ytcp-form-input-container/div[1]/div[2]/ytcp-free-text-chip-bar/ytcp-chip-bar/div")
                 tags_field = self.browser.find(By.ID, 'text-input', tags_container)
-                tags_field.send_keys(','.join([t for t in tags if len(t) <= MAX_TAG_CHAR_LEN])[:MAX_TAGS_CHAR_LEN-1] + ',')
+                tags_field.send_keys(
+                    ','.join([t for t in tags if len(t) <= MAX_TAG_CHAR_LEN])[:MAX_TAGS_CHAR_LEN - 1] + ',')
                 self.print("Upload: added tags")
 
             kids_selection_name = 'VIDEO_MADE_FOR_KIDS_MFK' if made_for_kids else 'VIDEO_MADE_FOR_KIDS_NOT_MFK'
@@ -619,7 +646,7 @@ class Youtube(SeleniumUploaderAccount):
             # self.__dismiss_dialogs(timeout=1)
             self.__dismiss_callouts(timeout=1)
 
-            visibility_tab = self.browser.find_by('button', {'test-id':'REVIEW', 'state':'active'})
+            visibility_tab = self.browser.find_by('button', {'test-id': 'REVIEW', 'state': 'active'})
 
             if not visibility_tab:
                 for i in range(5):
@@ -627,7 +654,8 @@ class Youtube(SeleniumUploaderAccount):
 
                     if third_next is not None:
                         aria_disabled_attr = third_next.get_attribute('aria-disabled')
-                        print(f'third_next: aria-disabled: {aria_disabled_attr} | is_displayed: {third_next.is_displayed()} | is_enabled: {third_next.is_enabled()}')
+                        print(
+                            f'third_next: aria-disabled: {aria_disabled_attr} | is_displayed: {third_next.is_displayed()} | is_enabled: {third_next.is_enabled()}')
 
                         if aria_disabled_attr is not None:
                             aria_disabled = aria_disabled_attr == 'true' or aria_disabled_attr == True
@@ -649,7 +677,6 @@ class Youtube(SeleniumUploaderAccount):
                                 break
 
                     time.sleep(3)
-
             visibility_main_button = self.browser.find(By.NAME, visibility.name, timeout=5)
             self.browser.find(By.ID, 'radioLabel', visibility_main_button, timeout=5).click()
             self.print('Upload: set to', visibility.name)
@@ -663,14 +690,17 @@ class Youtube(SeleniumUploaderAccount):
                 print('CLICKED GOT IT POPUP')
 
             try:
-                video_url_container = self.browser.find(By.XPATH, "//span[@class='video-url-fadeable style-scope ytcp-video-info']", timeout=2.5)
-                video_url_element = self.browser.find(By.XPATH, "//a[@class='style-scope ytcp-video-info']", element=video_url_container, timeout=2.5)
+                video_url_container = self.browser.find(By.XPATH,
+                                                        "//span[@class='video-url-fadeable style-scope ytcp-video-info']",
+                                                        timeout=2.5)
+                video_url_element = self.browser.find(By.XPATH, "//a[@class='style-scope ytcp-video-info']",
+                                                      element=video_url_container, timeout=2.5)
                 video_id = video_url_element.get_attribute('href').split('/')[-1]
             except Exception as e:
                 self.print(e)
                 video_id = None
 
-            i=0
+            i = 0
 
             if extra_sleep_before_publish is not None and extra_sleep_before_publish > 0:
                 time.sleep(extra_sleep_before_publish)
@@ -685,7 +715,8 @@ class Youtube(SeleniumUploaderAccount):
 
                     upload_status = UploadStatus.get_status(self.browser, upload_progress_element)
 
-                    if upload_status in [UploadStatus.PROCESSING_SD, UploadStatus.PROCESSED_SD_PROCESSING_HD, UploadStatus.PROCESSED_ALL]:
+                    if upload_status in [UploadStatus.PROCESSING_SD, UploadStatus.PROCESSED_SD_PROCESSING_HD,
+                                         UploadStatus.PROCESSED_ALL]:
                         done_button = self.browser.find(By.ID, 'done-button')
 
                         if done_button.get_attribute('aria-disabled') == 'false':
@@ -729,11 +760,11 @@ class Youtube(SeleniumUploaderAccount):
     # returns (commented_successfully, pinned_comment_successfully)
     @timeoutable(timeout_type=TimeoutType.Threading if os.name == 'nt' else TimeoutType.Signal, name='Comment')
     def __comment_on_video(
-        self,
-        video_id: str,
-        comment: str,
-        pinned: bool = False,
-        timeout: Optional[int] = None
+            self,
+            video_id: str,
+            comment: str,
+            pinned: bool = False,
+            timeout: Optional[int] = None
     ) -> (bool, bool):
         self.load_video(video_id)
         time.sleep(1)
@@ -756,8 +787,10 @@ class Youtube(SeleniumUploaderAccount):
 
             self.print('comment: getting focus')
             try:
-                self.browser.find_by('div', id_='simple-box', class_='style-scope ytd-comments-header-renderer',timeout=0.5).click()
-                self.browser.find_by('ytd-comment-simplebox-renderer', class_='style-scope ytd-comments-header-renderer',timeout=0.5).click()
+                self.browser.find_by('div', id_='simple-box', class_='style-scope ytd-comments-header-renderer',
+                                     timeout=0.5).click()
+                self.browser.find_by('ytd-comment-simplebox-renderer',
+                                     class_='style-scope ytd-comments-header-renderer', timeout=0.5).click()
                 # comment_placeholder_area.click()
                 self.browser.find_by('div', id_='placeholder-area', timeout=0.5).click()
             except Exception as e:
@@ -768,7 +801,8 @@ class Youtube(SeleniumUploaderAccount):
             self.browser.find_by('div', id_='contenteditable-root', timeout=0.5).send_keys(comment)
 
             self.print('comment: clicking post_comment')
-            self.browser.find_by('ytd-button-renderer', id_='submit-button', class_='style-scope ytd-commentbox style-primary size-default',timeout=0.5).click()
+            self.browser.find_by('ytd-button-renderer', id_='submit-button',
+                                 class_='style-scope ytd-commentbox style-primary size-default', timeout=0.5).click()
 
             # self.browser.find(By.XPATH, "//ytd-button-renderer[@id='submit-button' and @class='style-scope ytd-commentbox style-primary size-default']", timeout=0.5).click()
 
@@ -777,16 +811,23 @@ class Youtube(SeleniumUploaderAccount):
 
             try:
                 try:
-                    dropdown_menu = self.browser.find_by('yt-sort-filter-sub-menu-renderer', class_='style-scope ytd-comments-header-renderer')
+                    dropdown_menu = self.browser.find_by('yt-sort-filter-sub-menu-renderer',
+                                                         class_='style-scope ytd-comments-header-renderer')
                     self.browser.scroll_to_element(dropdown_menu, header_element=header)
                     time.sleep(0.5)
 
                     self.print('comment: clicking dropdown_trigger (open)')
-                    self.browser.find_by('paper-button', id_='label', class_='dropdown-trigger style-scope yt-dropdown-menu', in_element=dropdown_menu, timeout=2.5).click()
+                    self.browser.find_by('paper-button', id_='label',
+                                         class_='dropdown-trigger style-scope yt-dropdown-menu',
+                                         in_element=dropdown_menu, timeout=2.5).click()
 
                     try:
-                        dropdown_menu = self.browser.find_by('paper-button', id_='label', class_='dropdown-trigger style-scope yt-dropdown-menu', in_element=dropdown_menu, timeout=2.5)
-                        dropdown_elements = [elem for elem in self.browser.find_all_by('a', in_element=dropdown_menu, timeout=2.5) if 'yt-dropdown-menu' in elem.get_attribute('class')]
+                        dropdown_menu = self.browser.find_by('paper-button', id_='label',
+                                                             class_='dropdown-trigger style-scope yt-dropdown-menu',
+                                                             in_element=dropdown_menu, timeout=2.5)
+                        dropdown_elements = [elem for elem in
+                                             self.browser.find_all_by('a', in_element=dropdown_menu, timeout=2.5) if
+                                             'yt-dropdown-menu' in elem.get_attribute('class')]
 
                         last_dropdown_element = dropdown_elements[-1]
 
@@ -795,19 +836,27 @@ class Youtube(SeleniumUploaderAccount):
                             self.print('comment: clicking last_dropdown_element')
                             last_dropdown_element.click()
                         else:
-                            self.print('comment: clicking dropdown_trigger (close) (did not click last_dropdown_element (did not find it))')
-                            self.browser.find_by('paper-button', id_='label', class_='dropdown-trigger style-scope yt-dropdown-menu', in_element=dropdown_menu, timeout=2.5).click()
+                            self.print(
+                                'comment: clicking dropdown_trigger (close) (did not click last_dropdown_element (did not find it))')
+                            self.browser.find_by('paper-button', id_='label',
+                                                 class_='dropdown-trigger style-scope yt-dropdown-menu',
+                                                 in_element=dropdown_menu, timeout=2.5).click()
                     except Exception as e:
                         self.print(e)
-                        self.browser.find_by('paper-button', id_='label', class_='dropdown-trigger style-scope yt-dropdown-menu', in_element=dropdown_menu, timeout=2.5).click()
+                        self.browser.find_by('paper-button', id_='label',
+                                             class_='dropdown-trigger style-scope yt-dropdown-menu',
+                                             in_element=dropdown_menu, timeout=2.5).click()
                 except Exception as e:
                     self.print(e)
 
                 # self.browser.scroll(100)
                 time.sleep(2.5)
 
-                for comment_thread in self.browser.find_all_by('ytd-comment-thread-renderer', class_='style-scope ytd-item-section-renderer'):
-                    pinned_element = self.browser.find_by('yt-icon', class_='style-scope ytd-pinned-comment-badge-renderer', in_element=comment_thread, timeout=0.5)
+                for comment_thread in self.browser.find_all_by('ytd-comment-thread-renderer',
+                                                               class_='style-scope ytd-item-section-renderer'):
+                    pinned_element = self.browser.find_by('yt-icon',
+                                                          class_='style-scope ytd-pinned-comment-badge-renderer',
+                                                          in_element=comment_thread, timeout=0.5)
                     pinned = pinned_element is not None and pinned_element.is_displayed()
 
                     if pinned:
@@ -815,26 +864,39 @@ class Youtube(SeleniumUploaderAccount):
 
                     try:
                         # button_3_dots
-                        button_3_dots = self.browser.find_by('yt-icon-button', id_='button', class_='dropdown-trigger style-scope ytd-menu-renderer', in_element=comment_thread, timeout=2.5)
+                        button_3_dots = self.browser.find_by('yt-icon-button', id_='button',
+                                                             class_='dropdown-trigger style-scope ytd-menu-renderer',
+                                                             in_element=comment_thread, timeout=2.5)
 
                         self.browser.scroll_to_element(button_3_dots, header_element=header)
                         time.sleep(0.5)
                         self.print('comment: clicking button_3_dots')
                         button_3_dots.click()
 
-                        popup_renderer_3_dots = self.browser.find_by('ytd-menu-popup-renderer', class_='ytd-menu-popup-renderer', timeout=2)
+                        popup_renderer_3_dots = self.browser.find_by('ytd-menu-popup-renderer',
+                                                                     class_='ytd-menu-popup-renderer', timeout=2)
                         time.sleep(1.5)
 
                         try:
-                            self.browser.driver.execute_script("arguments[0].scrollIntoView();", self.browser.find_by('a',class_='yt-simple-endpoint style-scope ytd-menu-navigation-item-renderer', in_element=popup_renderer_3_dots, timeout=2.5))
+                            self.browser.driver.execute_script("arguments[0].scrollIntoView();",
+                                                               self.browser.find_by('a',
+                                                                                    class_='yt-simple-endpoint style-scope ytd-menu-navigation-item-renderer',
+                                                                                    in_element=popup_renderer_3_dots,
+                                                                                    timeout=2.5))
 
-                            self.browser.find_by('a',class_='yt-simple-endpoint style-scope ytd-menu-navigation-item-renderer', in_element=popup_renderer_3_dots, timeout=2.5).click()
+                            self.browser.find_by('a',
+                                                 class_='yt-simple-endpoint style-scope ytd-menu-navigation-item-renderer',
+                                                 in_element=popup_renderer_3_dots, timeout=2.5).click()
                         except:
                             try:
-                                self.browser.find_by('ytd-menu-navigation-item-renderer',class_='style-scope ytd-menu-popup-renderer', in_element=popup_renderer_3_dots, timeout=2.5).click()
+                                self.browser.find_by('ytd-menu-navigation-item-renderer',
+                                                     class_='style-scope ytd-menu-popup-renderer',
+                                                     in_element=popup_renderer_3_dots, timeout=2.5).click()
                             except Exception as e:
                                 try:
-                                    self.browser.find_by('paper-item',class_='style-scope ytd-menu-navigation-item-renderer', in_element=popup_renderer_3_dots, timeout=2.5).click()
+                                    self.browser.find_by('paper-item',
+                                                         class_='style-scope ytd-menu-navigation-item-renderer',
+                                                         in_element=popup_renderer_3_dots, timeout=2.5).click()
                                 except Exception as e:
                                     pass
 
@@ -866,7 +928,8 @@ class Youtube(SeleniumUploaderAccount):
         dismiss_button_container = self.browser.find_by('div', id_='dismiss-button', timeout=1.5)
 
         if dismiss_button_container:
-            dismiss_button = self.browser.find_by('paper-button', id_='button', timeout=0.5, in_element=dismiss_button_container)
+            dismiss_button = self.browser.find_by('paper-button', id_='button', timeout=0.5,
+                                                  in_element=dismiss_button_container)
 
             if dismiss_button:
                 dismiss_button.click()
@@ -886,9 +949,9 @@ class Youtube(SeleniumUploaderAccount):
 
     @noraise(default_return_value=False)
     def __dismiss_welcome_popup(
-        self,
-        offset: Tuple[int, int] = (20, 20),
-        timeout: Optional[int] = 2
+            self,
+            offset: Tuple[int, int] = (20, 20),
+            timeout: Optional[int] = 2
     ) -> bool:
         print('__dismiss_welcome_popup')
         try:
@@ -907,8 +970,8 @@ class Youtube(SeleniumUploaderAccount):
 
     @noraise(default_return_value=False)
     def __dismiss_welcome_popup_2(
-        self,
-        timeout: Optional[int] = 2
+            self,
+            timeout: Optional[int] = 2
     ) -> bool:
         print('__dismiss_welcome_popup_2')
         element = self.browser.find_by('ytcp-warm-welcome-dialog', timeout=timeout)
@@ -933,15 +996,15 @@ class Youtube(SeleniumUploaderAccount):
 
     @noraise(default_return_value=False)
     def __dismiss_welcome_popups(
-        self,
-        timeout: Optional[int] = 2
+            self,
+            timeout: Optional[int] = 2
     ) -> bool:
         return self.__dismiss_welcome_popup_2(timeout=timeout) or self.__dismiss_welcome_popup(timeout=timeout)
 
     @noraise(default_return_value=False)
     def __dismiss_callouts(
-        self,
-        timeout: Optional[int] = 2
+            self,
+            timeout: Optional[int] = 2
     ) -> None:
         print('__dismiss_callouts')
         element = self.browser.find_by('div', id='callout', role='dialog', timeout=timeout)
@@ -960,8 +1023,8 @@ class Youtube(SeleniumUploaderAccount):
 
     @noraise(default_return_value=None)
     def __dismiss_dialogs(
-        self,
-        timeout: Optional[int] = 2
+            self,
+            timeout: Optional[int] = 2
     ) -> None:
         element = self.browser.find_by('ytcp-dialog', timeout=timeout)
 
@@ -981,6 +1044,5 @@ class Youtube(SeleniumUploaderAccount):
 
     def __channel_videos_url(self, channel_id: str) -> str:
         return YT_URL + '/channel/' + channel_id + '/videos?view=0&sort=da&flow=grid'
-
 
 # -------------------------------------------------------------------------------------------------------------------------------- #
