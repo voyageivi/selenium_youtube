@@ -7,6 +7,8 @@ import time
 import os
 from sys import platform
 
+from selenium.webdriver import ActionChains
+from selenium.webdriver.remote.webelement import WebElement
 # Pip
 from selenium_uploader_account import SeleniumUploaderAccount
 from selenium_browser import Browser
@@ -205,13 +207,17 @@ class Youtube(SeleniumUploaderAccount):
             thumbnail_image_path: Optional[str] = None,
             timeout: Optional[int] = 60 * 3,  # 3 min
             extra_sleep_after_upload: Optional[int] = None,
-            extra_sleep_before_publish: Optional[int] = None
+            extra_sleep_before_publish: Optional[int] = None,
+            channel_name: Optional[str] = None
     ) -> (bool, Optional[str]):
         if not self.is_logged_in:
             print('Error - \'upload\': Isn\'t logged in')
 
             return False, None
-
+        if channel_name is not None:
+            self.__switch_channel(channel_name)
+            print(f'Switch channel: {channel_name}')
+            time.sleep(1)
         res = self.__upload(
             video_path=video_path,
             title=title,
@@ -535,6 +541,19 @@ class Youtube(SeleniumUploaderAccount):
         except:
             print('_input_file, move to element self.browser.find_by(\'ytcp-button\', id_=\'publish-button\')')
 
+    def _reset_input_val(self, element: WebElement, text):
+        actions = ActionChains(self.browser)
+        actions.move_to_element(element)
+        actions.key_down(Keys.COMMAND if platform == 'darwin' else Keys.CONTROL)
+        actions.send_keys('a')
+        actions.key_up(Keys.COMMAND)
+        # actions.pause(.5)
+        actions.send_keys(Keys.BACKSPACE)
+        # actions.pause(.5)
+        actions.send_keys(text)
+        actions.send_keys(Keys.ENTER)
+        actions.perform()
+
     @timeoutable(timeout_type=TimeoutType.Threading if os.name == 'nt' else TimeoutType.Signal, name='Upload')
     def __upload(
             self,
@@ -677,9 +696,19 @@ class Youtube(SeleniumUploaderAccount):
                                 break
 
                     time.sleep(3)
-            visibility_main_button = self.browser.find(By.NAME, visibility.name, timeout=5)
-            self.browser.find(By.ID, 'radioLabel', visibility_main_button, timeout=5).click()
-            self.print('Upload: set to', visibility.name)
+            if public_datetime is None:
+                visibility_main_button = self.browser.find(By.NAME, visibility.name, timeout=5)
+                self.browser.find(By.ID, 'radioLabel', visibility_main_button, timeout=5).click()
+                self.print('Upload: set to', visibility.name)
+            else:
+                btn_second_container = self.browser.find(By.ID, "second-container-expand-button")
+                btn_second_container.click()
+                date_input = self.browser.find_by('tp-yt-paper-dialog[@id="dialog"]/descendant::input', timeout=1)
+                self._reset_input_val(date_input, public_datetime.strftime("%Y/%m/%d"))
+                time_input = self.browser.find_by('tp-yt-paper-input-container[@id="container"]/descendant::input',
+                                                  timeout=1)
+                self._reset_input_val(time_input, public_datetime.strftime("%H:%M"))
+                self.print("Upload: set public date", public_datetime)
 
             time.sleep(1)
             got_it_popup = self.browser.find(By.ID, 'got-it-button')
@@ -1044,5 +1073,11 @@ class Youtube(SeleniumUploaderAccount):
 
     def __channel_videos_url(self, channel_id: str) -> str:
         return YT_URL + '/channel/' + channel_id + '/videos?view=0&sort=da&flow=grid'
+
+    def __switch_channel(self, channel_name):
+        url = YT_URL + '/channel_switcher'
+        self.browser.get(url)
+        time.sleep(1.5)
+        self.browser.find_by(f"yt-formatted-string[contains(text(), '{channel_name}')]", timeout=3).click()
 
 # -------------------------------------------------------------------------------------------------------------------------------- #
