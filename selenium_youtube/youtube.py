@@ -208,7 +208,8 @@ class Youtube(SeleniumUploaderAccount):
             timeout: Optional[int] = 60 * 3,  # 3 min
             extra_sleep_after_upload: Optional[int] = None,
             extra_sleep_before_publish: Optional[int] = None,
-            channel_name: Optional[str] = None
+            channel_name: Optional[str] = None,
+            publish_data: Optional[datetime.datetime] = None
     ) -> (bool, Optional[str]):
         if not self.is_logged_in:
             print('Error - \'upload\': Isn\'t logged in')
@@ -228,7 +229,8 @@ class Youtube(SeleniumUploaderAccount):
             thumbnail_image_path=thumbnail_image_path,
             extra_sleep_after_upload=extra_sleep_after_upload,
             extra_sleep_before_publish=extra_sleep_before_publish,
-            timeout=timeout
+            timeout=timeout,
+            publish_data=publish_data
         )
 
         if isinstance(res, Exception):
@@ -542,16 +544,19 @@ class Youtube(SeleniumUploaderAccount):
             print('_input_file, move to element self.browser.find_by(\'ytcp-button\', id_=\'publish-button\')')
 
     def _reset_input_val(self, element: WebElement, text):
-        actions = ActionChains(self.browser)
-        actions.move_to_element(element)
-        actions.key_down(Keys.COMMAND if platform == 'darwin' else Keys.CONTROL)
-        actions.send_keys('a')
-        actions.key_up(Keys.COMMAND)
-        # actions.pause(.5)
-        actions.send_keys(Keys.BACKSPACE)
-        # actions.pause(.5)
-        actions.send_keys(text)
-        actions.send_keys(Keys.ENTER)
+        actions = ActionChains(self.browser.driver) \
+            .move_to_element(element) \
+            .pause(.5) \
+            # actions.click(element) \
+        actions.key_down(Keys.COMMAND if platform == 'darwin' else Keys.CONTROL) \
+            .send_keys('a') \
+            .key_up(Keys.COMMAND) \
+            .pause(.5) \
+            .send_keys(Keys.BACKSPACE) \
+            .pause(.5) \
+            .send_keys(text) \
+            .pause(.1) \
+            .send_keys(Keys.ENTER)
         actions.perform()
 
     @timeoutable(timeout_type=TimeoutType.Threading if os.name == 'nt' else TimeoutType.Signal, name='Upload')
@@ -563,12 +568,13 @@ class Youtube(SeleniumUploaderAccount):
             tags: Optional[List[str]] = None,
             made_for_kids: bool = False,
             visibility: Visibility = Visibility.PUBLIC,
-            public_datetime: datetime.datetime = None,
+            publish_data: Optional[datetime.datetime] = None,
             thumbnail_image_path: Optional[str] = None,
             extra_sleep_after_upload: Optional[int] = None,
             extra_sleep_before_publish: Optional[int] = None,
             extra_sleep_after_publish: Optional[float] = 15,
-            timeout: Optional[int] = None
+            timeout: Optional[int] = None,
+
     ) -> (bool, Optional[str]):
         self.get(YT_URL)
         time.sleep(1.5)
@@ -696,19 +702,25 @@ class Youtube(SeleniumUploaderAccount):
                                 break
 
                     time.sleep(3)
-            if public_datetime is None:
+            if publish_data is None:
                 visibility_main_button = self.browser.find(By.NAME, visibility.name, timeout=5)
                 self.browser.find(By.ID, 'radioLabel', visibility_main_button, timeout=5).click()
                 self.print('Upload: set to', visibility.name)
             else:
                 btn_second_container = self.browser.find(By.ID, "second-container-expand-button")
                 btn_second_container.click()
-                date_input = self.browser.find_by('tp-yt-paper-dialog[@id="dialog"]/descendant::input', timeout=1)
-                self._reset_input_val(date_input, public_datetime.strftime("%Y/%m/%d"))
-                time_input = self.browser.find_by('tp-yt-paper-input-container[@id="container"]/descendant::input',
-                                                  timeout=1)
-                self._reset_input_val(time_input, public_datetime.strftime("%H:%M"))
-                self.print("Upload: set public date", public_datetime)
+                time.sleep(.5)
+                public_form = self.browser.find("id", "publish-from-private-non-sponsor-selector")
+                trigger1 = self.browser.find_by('ytcp-dropdown-trigger', in_element=public_form)
+                trigger1.click()
+                time.sleep(1)
+                date_input = self.browser.find_by('tp-yt-paper-dialog[@id="dialog"]/descendant::input', timeout=3)
+                self._reset_input_val(element=date_input, text=publish_data.strftime("%Y/%m/%d"))
+                time.sleep(1)
+                time_input = self.browser.find_by('*[@id="labelAndInputContainer"]/descendant::input', timeout=3)
+                time_input.click()
+                self._reset_input_val(element=time_input, text=publish_data.strftime("%H:%M"))
+                self.print("Upload: set public date", publish_data)
 
             time.sleep(1)
             got_it_popup = self.browser.find(By.ID, 'got-it-button')
