@@ -1087,9 +1087,23 @@ class Youtube(SeleniumUploaderAccount):
         return YT_URL + '/channel/' + channel_id + '/videos?view=0&sort=da&flow=grid'
 
     def __switch_channel(self, channel_name):
+        self.browser.get(YT_URL)
+        avatraBtn = self.browser.find_by("button", id_="avatar-btn")
+        if avatraBtn is not None:
+            avatraBtn.click()
+        channel = self.browser.find_by('yt-formatted-string', id_='channel-handle', timeout=3)
+        if channel is not None and channel_name in channel.text:
+            return
         url = YT_URL + '/channel_switcher'
         self.browser.get(url)
-        time.sleep(1.5)
-        self.browser.find_by(f"yt-formatted-string[contains(text(), '{channel_name}')]", timeout=3).click()
 
+        switch_btn = self.browser.find_by(f"yt-formatted-string[contains(text(), '{channel_name}')]", timeout=3)
+        self.browser.scroll_to_element(element=switch_btn, header_element=switch_btn)
+        self.browser.scroll(-180)
+        switch_btn.click()
+        confirm_btn = self.browser.find_by('yt-button-renderer[@id="confirm-button"]', timeout=5)
+        if confirm_btn:
+            confirm_btn.click()
+        print('1')
+# -------------------------------------------------------------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------------------------------------------------------------- #
