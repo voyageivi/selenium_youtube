@@ -73,7 +73,9 @@ class Youtube(SeleniumUploaderAccount):
             # login
             prompt_user_input_login: bool = True,
             login_prompt_callback: Optional[Callable[[str], None]] = None,
-            login_prompt_timeout_seconds: int = 60 * 5
+            login_prompt_timeout_seconds: int = 60 * 5,
+            date_layout: Optional[str] = "%b %d, %Y",  # "%Y/%m/%d"
+            time_layout: Optional[str] = "%I:%M %p",  # "%H:%M"
     ):
         super().__init__(
             # browser
@@ -84,6 +86,8 @@ class Youtube(SeleniumUploaderAccount):
             login_prompt_callback=login_prompt_callback,
             login_prompt_timeout_seconds=login_prompt_timeout_seconds,
         )
+        self.date_layout = date_layout
+        self.time_layout = time_layout
 
         if not self.did_log_in_at_init:
             self.__dismiss_alerts()
@@ -216,7 +220,8 @@ class Youtube(SeleniumUploaderAccount):
 
             return False, None
         if channel_name is not None:
-            self.__switch_channel(channel_name)
+            if not self.__switch_channel(channel_name):
+                return False, 'cant switch channel'
             print(f'Switch channel: {channel_name}')
             time.sleep(1)
         res = self.__upload(
@@ -550,7 +555,7 @@ class Youtube(SeleniumUploaderAccount):
             # actions.click(element) \
         actions.key_down(Keys.COMMAND if platform == 'darwin' else Keys.CONTROL) \
             .send_keys('a') \
-            .key_up(Keys.COMMAND) \
+            .key_up(Keys.COMMAND if platform == 'darwin' else Keys.CONTROL) \
             .pause(.5) \
             .send_keys(Keys.BACKSPACE) \
             .pause(.5) \
@@ -715,11 +720,11 @@ class Youtube(SeleniumUploaderAccount):
                 trigger1.click()
                 time.sleep(1)
                 date_input = self.browser.find_by('tp-yt-paper-dialog[@id="dialog"]/descendant::input', timeout=3)
-                self._reset_input_val(element=date_input, text=publish_data.strftime("%Y/%m/%d"))
+                self._reset_input_val(element=date_input, text=publish_data.strftime(self.date_layout))
                 time.sleep(1)
                 time_input = self.browser.find_by('*[@id="labelAndInputContainer"]/descendant::input', timeout=3)
                 time_input.click()
-                self._reset_input_val(element=time_input, text=publish_data.strftime("%H:%M"))
+                self._reset_input_val(element=time_input, text=publish_data.strftime(self.time_layout))
                 self.print("Upload: set public date", publish_data)
 
             time.sleep(1)
@@ -1086,24 +1091,26 @@ class Youtube(SeleniumUploaderAccount):
     def __channel_videos_url(self, channel_id: str) -> str:
         return YT_URL + '/channel/' + channel_id + '/videos?view=0&sort=da&flow=grid'
 
-    def __switch_channel(self, channel_name):
+    def __switch_channel(self, channel_name) -> bool:
         self.browser.get(YT_URL)
         avatraBtn = self.browser.find_by("button", id_="avatar-btn")
         if avatraBtn is not None:
             avatraBtn.click()
         channel = self.browser.find_by('yt-formatted-string', id_='channel-handle', timeout=3)
         if channel is not None and channel_name in channel.text:
-            return
+            return True
         url = YT_URL + '/channel_switcher'
         self.browser.get(url)
 
         switch_btn = self.browser.find_by(f"yt-formatted-string[contains(text(), '{channel_name}')]", timeout=3)
+        if switch_btn is None:
+            return False
         self.browser.scroll_to_element(element=switch_btn, header_element=switch_btn)
         self.browser.scroll(-180)
         switch_btn.click()
         confirm_btn = self.browser.find_by('yt-button-renderer[@id="confirm-button"]', timeout=5)
         if confirm_btn:
             confirm_btn.click()
-        print('1')
+        return True
 # -------------------------------------------------------------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------------------------------------------------------------- #
