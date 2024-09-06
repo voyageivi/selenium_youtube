@@ -241,7 +241,7 @@ class Youtube(SeleniumUploaderAccount):
         if isinstance(res, Exception):
             self.print(res)
 
-            return False, None
+            return False, str(res)
 
         return res
 

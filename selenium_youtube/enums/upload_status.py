@@ -3,6 +3,7 @@
 # System
 from enum import Enum
 
+from selenium_chrome import Chrome
 # Pip
 from selenium_firefox.firefox import Firefox
 
@@ -24,7 +25,7 @@ class UploadStatus(Enum):
     @classmethod
     def get_status(
         cls,
-        ff: Firefox,
+        ff: Chrome,
         element
     ):
         attriutes = ff.get_attributes(element)
