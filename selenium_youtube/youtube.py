@@ -7,6 +7,7 @@ import time
 import os
 from sys import platform
 
+from selenium.common import ElementClickInterceptedException
 from selenium.webdriver import ActionChains
 from selenium.webdriver.remote.webelement import WebElement
 # Pip
@@ -221,7 +222,7 @@ class Youtube(SeleniumUploaderAccount):
             return False, None
         if channel_name is not None:
             if not self.__switch_channel(channel_name):
-                return False, 'cant switch channel'
+                return False, f'cant switch channel: {channel_name}'
             print(f'Switch channel: {channel_name}')
             time.sleep(1)
         res = self.__upload(
@@ -581,8 +582,8 @@ class Youtube(SeleniumUploaderAccount):
             timeout: Optional[int] = None,
 
     ) -> (bool, Optional[str]):
-        self.get(YT_URL)
-        time.sleep(1.5)
+        # self.get(YT_URL)
+        # time.sleep(1.5)
 
         try:
             self.get(YT_UPLOAD_URL)
@@ -612,13 +613,17 @@ class Youtube(SeleniumUploaderAccount):
                 error_text = error_dialog.text
 
                 if error_text and error_text.strip() != '':
+                    errText = error_text.strip()
+                    print("errorText: " + errText)
+                    if errText == "File unreadable":
+                        return False, errText
                     return False, ERROR_MAX_UPLOAD_LIMIT_REACHED
 
             self.__dismiss_welcome_popups(timeout=2)
             # self.__dismiss_dialogs(timeout=1)
             self.__dismiss_callouts(timeout=1)
 
-            self.browser.set_textfield_text_remove_old(
+            set_textfield_text_remove_old(
                 element=self.browser.find_by('div', id_='textbox', timeout=5) or self.browser.find_by(id_='textbox',
                                                                                                       timeout=5),
                 text=title[:MAX_TITLE_CHAR_LEN]
@@ -760,9 +765,17 @@ class Youtube(SeleniumUploaderAccount):
                     )
 
                     upload_status = UploadStatus.get_status(self.browser, upload_progress_element)
+                    is_finish = upload_status in [UploadStatus.PROCESSING_SD, UploadStatus.PROCESSED_SD_PROCESSING_HD,
+                                                  UploadStatus.PROCESSED_ALL]
 
-                    if upload_status in [UploadStatus.PROCESSING_SD, UploadStatus.PROCESSED_SD_PROCESSING_HD,
-                                         UploadStatus.PROCESSED_ALL]:
+                    if not is_finish:
+                        uploading_progress = self.browser.find_by(
+                            'ytcp-video-upload-progress-hover[@progress-type="UPLOADING"]')
+                        if uploading_progress:
+                            prgress = self.browser.find_by('div/tp-yt-paper-progress', in_element=uploading_progress)
+                            is_finish = (prgress is None)
+
+                    if is_finish:
                         done_button = self.browser.find(By.ID, 'done-button')
 
                         if done_button.get_attribute('aria-disabled') == 'false':
@@ -1097,20 +1110,67 @@ class Youtube(SeleniumUploaderAccount):
         if avatraBtn is not None:
             avatraBtn.click()
         channel = self.browser.find_by('yt-formatted-string', id_='channel-handle', timeout=3)
-        if channel is not None and channel_name in channel.text:
-            return True
+        try:
+            if channel is not None and channel_name in channel.text:
+                return True
+        except:
+            pass
         url = YT_URL + '/channel_switcher'
         self.browser.get(url)
+        time.sleep(1)
+        html = self.browser.find_by('html')
+        html.send_keys(Keys.PAGE_DOWN)
 
         switch_btn = self.browser.find_by(f"yt-formatted-string[contains(text(), '{channel_name}')]", timeout=3)
         if switch_btn is None:
             return False
-        self.browser.scroll_to_element(element=switch_btn, header_element=switch_btn)
-        self.browser.scroll(-180)
-        switch_btn.click()
+
+        _, element_y, _, _, _, _ = self.browser.get_element_coordinates(switch_btn)
+        self.browser.scroll_to(element_y - 156)
+        try:
+            switch_btn.click()
+        except ElementClickInterceptedException as e:
+            print(e)
+            return False
         confirm_btn = self.browser.find_by('yt-button-renderer[@id="confirm-button"]', timeout=5)
         if confirm_btn:
             confirm_btn.click()
         return True
+
+
 # -------------------------------------------------------------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------------------------------------------------------------- #
+
+def set_textfield_text_remove_old(
+        element: WebElement,
+        text: str
+) -> bool:
+    try:
+        element.click()
+    except:
+        pass
+
+    time.sleep(0.5)
+    element.clear()
+    element.send_keys(Keys.BACK_SPACE)
+
+    for _ in range(3):
+        try:
+            time.sleep(0.5)
+            element.send_keys(Keys.COMMAND if platform == 'darwin' else Keys.CONTROL, 'a')
+            time.sleep(0.5)
+            element.send_keys(Keys.BACK_SPACE)
+        except Exception as e:
+            print(e)
+        if element.text == '':
+            break
+    time.sleep(0.5)
+    element.send_keys('a')
+    time.sleep(0.5)
+    element.send_keys(Keys.BACK_SPACE)
+
+    time.sleep(0.5)
+
+    element.send_keys(text)
+
+    return True

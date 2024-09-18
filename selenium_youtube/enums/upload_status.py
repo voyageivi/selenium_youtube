@@ -7,26 +7,26 @@ from selenium_chrome import Chrome
 # Pip
 from selenium_firefox.firefox import Firefox
 
-# -------------------------------------------------------------------------------------------------------------------------------- #
 
+# -------------------------------------------------------------------------------------------------------------------------------- #
 
 
 # ------------------------------------------------------ class: UploadStatus ----------------------------------------------------- #
 
 class UploadStatus(Enum):
-    UNIDENTIFIED                = -1
-    UPLOADING                   = 0
-    PROCESSING_SD               = 1
-    PROCESSED_SD_PROCESSING_HD  = 2
-    PROCESSED_ALL               = 3
+    UNIDENTIFIED = -1
+    UPLOADING = 0
+    PROCESSING_SD = 1
+    PROCESSED_SD_PROCESSING_HD = 2
+    PROCESSED_ALL = 3
 
     # --------------------------------------------------------- Init --------------------------------------------------------- #
 
     @classmethod
     def get_status(
-        cls,
-        ff: Chrome,
-        element
+            cls,
+            ff: Chrome,
+            element
     ):
         attriutes = ff.get_attributes(element)
 
@@ -44,6 +44,5 @@ class UploadStatus(Enum):
             return UploadStatus.PROCESSED_ALL
 
         return UploadStatus.UNIDENTIFIED
-
 
 # -------------------------------------------------------------------------------------------------------------------------------- #
