@@ -1120,6 +1120,7 @@ class Youtube(SeleniumUploaderAccount):
         time.sleep(1)
         html = self.browser.find_by('html')
         html.send_keys(Keys.PAGE_DOWN)
+        time.sleep(3)
 
         switch_btn = self.browser.find_by(f"yt-formatted-string[contains(text(), '{channel_name}')]", timeout=3)
         if switch_btn is None:
@@ -1127,6 +1128,7 @@ class Youtube(SeleniumUploaderAccount):
 
         _, element_y, _, _, _, _ = self.browser.get_element_coordinates(switch_btn)
         self.browser.scroll_to(element_y - 156)
+        time.sleep(3)
         try:
             switch_btn.click()
         except ElementClickInterceptedException as e:
